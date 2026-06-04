@@ -2,23 +2,149 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>MYT Benzeri</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fly Müzik</title>
+
+<style>
+body{
+    background:#121212;
+    color:white;
+    font-family:Arial,sans-serif;
+    margin:0;
+}
+
+header{
+    background:#1DB954;
+    padding:20px;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    box-sizing:border-box;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    margin-top:10px;
+    border:none;
+    border-radius:10px;
+    background:#1DB954;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+.song{
+    background:#222;
+    margin-top:10px;
+    padding:15px;
+    border-radius:10px;
+}
+
+.song-title{
+    font-size:18px;
+    font-weight:bold;
+}
+
+.song-artist{
+    color:#aaa;
+}
+</style>
 </head>
+
 <body>
 
-<h2>MYT Benzeri Müzik Arama</h2>
+<header>🎵 Fly Müzik</header>
 
-<input type="text" id="arama" placeholder="Şarkı veya sanatçı adı">
+<div class="container">
+
+<input
+id="arama"
+type="text"
+placeholder="Şarkı veya sanatçı ara">
+
 <button onclick="ara()">Ara</button>
 
-<div id="sonuc"></div>
+<div id="sonuclar"></div>
+
+</div>
 
 <script>
-function ara() {
-    let kelime = document.getElementById("arama").value;
 
-    document.getElementById("sonuc").innerHTML =
-        "Aranan: " + kelime;
+const sarkilar = [
+{
+title:"Şımarık",
+artist:"Tarkan"
+},
+{
+title:"Kuzu Kuzu",
+artist:"Tarkan"
+},
+{
+title:"Antidepresan",
+artist:"Mabel Matiz"
+},
+{
+title:"Gülümse",
+artist:"Sezen Aksu"
+},
+{
+title:"Aşkın Olayım",
+artist:"Simge"
+},
+{
+title:"Belki",
+artist:"Dedublüman"
+}
+];
+
+function ara(){
+
+let kelime =
+document.getElementById("arama")
+.value
+.toLowerCase();
+
+let sonuc =
+sarkilar.filter(item =>
+item.title.toLowerCase().includes(kelime)
+||
+item.artist.toLowerCase().includes(kelime)
+);
+
+let alan =
+document.getElementById("sonuclar");
+
+alan.innerHTML="";
+
+if(sonuc.length===0){
+alan.innerHTML="<p>Şarkı bulunamadı.</p>";
+return;
+}
+
+sonuc.forEach(item=>{
+
+alan.innerHTML += `
+<div class="song">
+<div class="song-title">${item.title}</div>
+<div class="song-artist">${item.artist}</div>
+</div>
+`;
+
+});
+
 }
 </script>
 
