@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<yk-app name="MYT-Benzeri-Indirici" version="1.0">
+    <!-- Uygulama Arayüz Tasarımı -->
+    <interface>
+        <search-bar id="aramaKutusu" hint="Şarkı veya Sanatçı Adı Yazın..." />
+        <button id="araButonu" text="Şarkı Ara" color="#FF5722" />
+        <list-view id="sonucListesi" type="music-cards" />
+    </interface>
+
+    <!-- Arka Plan İndirme ve Arama Motoru Kodları -->
+    <logic>
+        <action trigger="araButonu.Click">
+            <web-request url="https://api.musicapi-server.net/v1/search?q={aramaKutusu.Text}">
+                <on-success>
+                    <parse-json target="sonucListesi" display="title, artist, duration" />
+                </on-success>
+            </web-request>
+        </action>
+
+        <action trigger="sonucListesi.ItemClick">
+            <get-selected-item property="download_url" target="audioSource" />
+            <download-manager start="audioSource" destination="/Storage/Download/MYT_Muzik/" />
+            <show-toast message="Şarkı İndiriliyor... Lütfen Bekleyin." />
+        </action>
+    </logic>
+</yk-app>
+              
