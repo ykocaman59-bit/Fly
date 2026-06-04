@@ -144,13 +144,8 @@ resultsDiv.innerHTML="Aranıyor...";
 
 try{
 
-const hostResponse =
-await fetch(
-"https://discoveryprovider.audius.co"
-);
-
-const host =
-await hostResponse.text();
+const hostResponse = await fetch("https://discoveryprovider.audius.co");
+const host = await hostResponse.text();
 
 const response =
 await fetch(
