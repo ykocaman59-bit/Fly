@@ -135,7 +135,8 @@ const resultsDiv = document.getElementById("results");
 const player = document.getElementById("audioPlayer");
 const nowPlaying = document.getElementById("nowPlaying");
 
-// Asla çökmeyen, CORS engeline takılmayan ultra hızlı yeni API servisi
+// Tarayıcı engelini (CORS) aşmak için güvenli köprü adresi
+const proxy = "https://corsproxy.io/?url=";
 const searchApi = "https://pipedapi.kavin.rocks/search?filter=videos&q=";
 const streamApi = "https://pipedapi.kavin.rocks/streams/";
 
@@ -150,7 +151,8 @@ async function searchMusic(){
     resultsDiv.innerHTML = "Aranıyor...";
 
     try {
-        const response = await fetch(searchApi + encodeURIComponent(query));
+        // İsteği proxy köprüsü üzerinden güvenli bir şekilde atıyoruz
+        const response = await fetch(proxy + encodeURIComponent(searchApi + encodeURIComponent(query)));
         
         if (!response.ok) {
             throw new Error("Sunucu hatası");
@@ -159,14 +161,12 @@ async function searchMusic(){
         const data = await response.json();
         resultsDiv.innerHTML = "";
 
-        // Piped API formatına göre gelen 'content' dizisini kontrol ediyoruz
         if(!data.content || data.content.length === 0){
             resultsDiv.innerHTML = "Sonuç bulunamadı.";
             return;
         }
 
         data.content.forEach(video => {
-            // Sadece video tipindeki içerikleri alıyoruz
             if(video.type !== "video") return;
 
             const cover = video.thumbnail ? video.thumbnail : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
@@ -186,12 +186,13 @@ async function searchMusic(){
                 nowPlaying.textContent = "Yükleniyor...";
                 
                 try {
-                    // Videonun sadece ses linkini (audio stream) çeken güvenli fonksiyon
-                    const streamResponse = await fetch(streamApi + video.url.split("v=")[1]);
+                    const videoId = video.url.split("v=")[1];
+                    // Ses dosyasını çekerken de proxy kullanıyoruz
+                    const streamResponse = await fetch(proxy + encodeURIComponent(streamApi + videoId));
                     const streamData = await streamResponse.json();
                     
-                    // En yüksek kaliteli ses dosyasını buluyoruz
                     if(streamData.audioStreams && streamData.audioStreams.length > 0){
+                        // Ses dosyasını oynatıcıya bağlıyoruz
                         player.src = streamData.audioStreams[0].url;
                         await player.play();
                         nowPlaying.textContent = video.title;
@@ -200,7 +201,7 @@ async function searchMusic(){
                         nowPlaying.textContent = "Bir şarkı seç...";
                     }
                 } catch(pErr) {
-                    alert("Şarkı şu an oynatılamadı, lütfen listedeki diğer sonuçları deneyin.");
+                    alert("Şarkı şu an oynatılamadı, lütfen başka bir şarkı deneyin.");
                     nowPlaying.textContent = "Bir şarkı seç...";
                 }
             };
