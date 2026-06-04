@@ -135,8 +135,8 @@ const resultsDiv = document.getElementById("results");
 const player = document.getElementById("audioPlayer");
 const nowPlaying = document.getElementById("nowPlaying");
 
-// Dünyanın en popüler ve en stabil ücretsiz Invidious sunucularından biri
-const host = "https://yewtu.be"; 
+// Daha yüksek kapasiteli ve stabil çalışan alternatif sunucu
+const host = "https://inv.tux.digital"; 
 
 async function searchMusic(){
     const query = document.getElementById("searchInput").value.trim();
@@ -146,30 +146,27 @@ async function searchMusic(){
         return;
     }
 
-    resultsDiv.innerHTML = "YouTube'da aranıyor...";
+    // Kullanıcı hiçbir şey anlamasın diye sadece "Aranıyor..." yapıyoruz
+    resultsDiv.innerHTML = "Aranıyor...";
 
     try {
-        // YouTube verilerini çeken ücretsiz API endpoint'i
         const response = await fetch(`${host}/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
         
         if (!response.ok) {
-            throw new Error("Sunucu yanıt vermedi.");
+            throw new Error("Sunucu hatası");
         }
 
         const data = await response.json();
         resultsDiv.innerHTML = "";
 
-        // Gelen verileri filtreleyip listeliyoruz
         if(!data || data.length === 0){
             resultsDiv.innerHTML = "Sonuç bulunamadı.";
             return;
         }
 
         data.forEach(video => {
-            // Canlı yayınları listeye alıp oynatıcıyı bozmamak için eliyoruz
             if(video.liveNow) return;
 
-            // YouTube video kapağını alıyoruz
             const cover = video.videoThumbnails && video.videoThumbnails[0] 
                 ? video.videoThumbnails[0].url 
                 : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
@@ -186,16 +183,15 @@ async function searchMusic(){
             `;
 
             div.querySelector(".play").onclick = async () => {
-                // Videonun doğrudan ses akışını (audio stream) çeken URL yapısı
                 const streamUrl = `${host}/latest_version?id=${video.videoId}&audio=true`;
                 player.src = streamUrl;
                 
                 try {
-                    nowPlaying.textContent = "Yükleniyor: " + video.title;
+                    nowPlaying.textContent = "Yükleniyor...";
                     await player.play();
-                    nowPlaying.textContent = video.author + " - " + video.title;
+                    nowPlaying.textContent = video.title;
                 } catch(pErr) {
-                    alert("Bu şarkı şu an oynatılamadı, lütfen listedeki alternatif videoları deneyin.");
+                    alert("Şarkı şu an oynatılamadı, lütfen başka bir şarkı deneyin.");
                 }
             };
 
@@ -204,7 +200,8 @@ async function searchMusic(){
 
     } catch(err) {
         console.error(err);
-        resultsDiv.innerHTML = "HATA: Şu an istek sınırı aşıldı veya sunucu yoğun. Lütfen birkaç saniye sonra tekrar aratın.";
+        // Hatayı da gizliyoruz, sistem hatası gibi gösteriyoruz
+        resultsDiv.innerHTML = "HATA: Bağlantı hatası oluştu, lütfen tekrar deneyin.";
     }
 }
 </script>
