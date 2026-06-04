@@ -1,27 +1,26 @@
-<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
-<yk-app name="MYT-Benzeri-Indirici" version="1.0">
-    <!-- Uygulama Arayüz Tasarımı -->
-    <interface>
-        <search-bar id="aramaKutusu" hint="Şarkı veya Sanatçı Adı Yazın..." />
-        <button id="araButonu" text="Şarkı Ara" color="#FF5722" />
-        <list-view id="sonucListesi" type="music-cards" />
-    </interface>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>MYT Benzeri</title>
+</head>
+<body>
 
-    <!-- Arka Plan İndirme ve Arama Motoru Kodları -->
-    <logic>
-        <action trigger="araButonu.Click">
-            <web-request url="https://api.musicapi-server.net/v1/search?q={aramaKutusu.Text}">
-                <on-success>
-                    <parse-json target="sonucListesi" display="title, artist, duration" />
-                </on-success>
-            </web-request>
-        </action>
+<h2>MYT Benzeri Müzik Arama</h2>
 
-        <action trigger="sonucListesi.ItemClick">
-            <get-selected-item property="download_url" target="audioSource" />
-            <download-manager start="audioSource" destination="/Storage/Download/MYT_Muzik/" />
-            <show-toast message="Şarkı İndiriliyor... Lütfen Bekleyin." />
-        </action>
-    </logic>
-</yk-app>
-              
+<input type="text" id="arama" placeholder="Şarkı veya sanatçı adı">
+<button onclick="ara()">Ara</button>
+
+<div id="sonuc"></div>
+
+<script>
+function ara() {
+    let kelime = document.getElementById("arama").value;
+
+    document.getElementById("sonuc").innerHTML =
+        "Aranan: " + kelime;
+}
+</script>
+
+</body>
+</html>
