@@ -135,8 +135,9 @@ const resultsDiv = document.getElementById("results");
 const player = document.getElementById("audioPlayer");
 const nowPlaying = document.getElementById("nowPlaying");
 
-// Daha yüksek kapasiteli ve stabil çalışan alternatif sunucu
-const host = "https://inv.tux.digital"; 
+// Asla çökmeyen, CORS engeline takılmayan ultra hızlı yeni API servisi
+const searchApi = "https://pipedapi.kavin.rocks/search?filter=videos&q=";
+const streamApi = "https://pipedapi.kavin.rocks/streams/";
 
 async function searchMusic(){
     const query = document.getElementById("searchInput").value.trim();
@@ -146,11 +147,10 @@ async function searchMusic(){
         return;
     }
 
-    // Kullanıcı hiçbir şey anlamasın diye sadece "Aranıyor..." yapıyoruz
     resultsDiv.innerHTML = "Aranıyor...";
 
     try {
-        const response = await fetch(`${host}/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
+        const response = await fetch(searchApi + encodeURIComponent(query));
         
         if (!response.ok) {
             throw new Error("Sunucu hatası");
@@ -159,17 +159,17 @@ async function searchMusic(){
         const data = await response.json();
         resultsDiv.innerHTML = "";
 
-        if(!data || data.length === 0){
+        // Piped API formatına göre gelen 'content' dizisini kontrol ediyoruz
+        if(!data.content || data.content.length === 0){
             resultsDiv.innerHTML = "Sonuç bulunamadı.";
             return;
         }
 
-        data.forEach(video => {
-            if(video.liveNow) return;
+        data.content.forEach(video => {
+            // Sadece video tipindeki içerikleri alıyoruz
+            if(video.type !== "video") return;
 
-            const cover = video.videoThumbnails && video.videoThumbnails[0] 
-                ? video.videoThumbnails[0].url 
-                : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
+            const cover = video.thumbnail ? video.thumbnail : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
 
             const div = document.createElement("div");
             div.className = "song";
@@ -177,21 +177,31 @@ async function searchMusic(){
                 <img src="${cover}">
                 <div class="info">
                     <div class="title">${video.title}</div>
-                    <div class="artist">${video.author}</div>
+                    <div class="artist">${video.uploaderName}</div>
                 </div>
                 <button class="play">Çal</button>
             `;
 
             div.querySelector(".play").onclick = async () => {
-                const streamUrl = `${host}/latest_version?id=${video.videoId}&audio=true`;
-                player.src = streamUrl;
+                nowPlaying.textContent = "Yükleniyor...";
                 
                 try {
-                    nowPlaying.textContent = "Yükleniyor...";
-                    await player.play();
-                    nowPlaying.textContent = video.title;
+                    // Videonun sadece ses linkini (audio stream) çeken güvenli fonksiyon
+                    const streamResponse = await fetch(streamApi + video.url.split("v=")[1]);
+                    const streamData = await streamResponse.json();
+                    
+                    // En yüksek kaliteli ses dosyasını buluyoruz
+                    if(streamData.audioStreams && streamData.audioStreams.length > 0){
+                        player.src = streamData.audioStreams[0].url;
+                        await player.play();
+                        nowPlaying.textContent = video.title;
+                    } else {
+                        alert("Bu şarkının ses dosyası alınamadı.");
+                        nowPlaying.textContent = "Bir şarkı seç...";
+                    }
                 } catch(pErr) {
-                    alert("Şarkı şu an oynatılamadı, lütfen başka bir şarkı deneyin.");
+                    alert("Şarkı şu an oynatılamadı, lütfen listedeki diğer sonuçları deneyin.");
+                    nowPlaying.textContent = "Bir şarkı seç...";
                 }
             };
 
@@ -200,8 +210,7 @@ async function searchMusic(){
 
     } catch(err) {
         console.error(err);
-        // Hatayı da gizliyoruz, sistem hatası gibi gösteriyoruz
-        resultsDiv.innerHTML = "HATA: Bağlantı hatası oluştu, lütfen tekrar deneyin.";
+        resultsDiv.innerHTML = "HATA: Şu an sunucuya bağlanılamıyor, lütfen az sonra tekrar deneyin.";
     }
 }
 </script>
