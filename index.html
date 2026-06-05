@@ -92,7 +92,7 @@ border-radius:6px;
 font-size:12px;
 }
 
-/* CUSTOM INPUT */
+/* INPUT MODAL */
 #inputModal{
 display:none;
 position:fixed;
@@ -110,22 +110,25 @@ width:80%;
 max-width:300px;
 }
 
-/* EDIT MODAL */
-#editModal{
+/* ALERT MODAL */
+#alertBox{
 display:none;
 position:fixed;
 top:0;left:0;right:0;bottom:0;
 background:rgba(0,0,0,0.7);
 justify-content:center;
 align-items:center;
+z-index:9999;
 }
 
-#editModal div{
+#alertBox div{
 background:#1e1e1e;
 padding:20px;
 border-radius:12px;
+text-align:center;
 width:80%;
 max-width:300px;
+border:2px solid #1DB954;
 }
 </style>
 </head>
@@ -189,14 +192,11 @@ max-width:300px;
 </div>
 </div>
 
-<!-- EDIT -->
-<div id="editModal">
+<!-- ALERT (ÖZEL UYARI) -->
+<div id="alertBox">
 <div>
-<h3>Müşteri Düzenle</h3>
-<input id="editName">
-<input id="editPhone">
-<button onclick="saveEdit()">Kaydet</button>
-<button onclick="closeEditModal()" style="background:#555;">İptal</button>
+<p id="alertText">Uyarı</p>
+<button onclick="closeAlert()">Tamam</button>
 </div>
 </div>
 
@@ -211,13 +211,23 @@ localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
-/* ADD CUSTOMER (VALIDATION EKLENDİ) */
+/* CUSTOM ALERT */
+function showAlert(msg){
+document.getElementById("alertText").innerText = msg;
+document.getElementById("alertBox").style.display = "flex";
+}
+
+function closeAlert(){
+document.getElementById("alertBox").style.display = "none";
+}
+
+/* ADD CUSTOMER */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.trim();
 
 if(!name || !phone){
-alert("Lütfen bilgileri doldurunuz");
+showAlert("Lütfen bilgileri doldurunuz");
 return;
 }
 
@@ -235,7 +245,7 @@ document.getElementById("phone").value="";
 save();
 }
 
-/* OPEN POPUP */
+/* POPUP */
 function openPopup(id){
 currentId=id;
 const c=customers.find(x=>x.id===id);
@@ -280,7 +290,7 @@ function confirmInput(){
 const val=document.getElementById("numberInput").value;
 
 if(val==="" || isNaN(val)){
-alert("Sadece sayı gir!");
+showAlert("Sadece sayı gir!");
 return;
 }
 
@@ -326,6 +336,21 @@ closeDeleteModal();
 closePopup();
 }
 
+/* EDIT */
+function openEditModal(){
+const c=customers.find(x=>x.id===currentId);
+
+const name=prompt("Yeni isim:",c.name);
+const phone=prompt("Yeni telefon:",c.phone);
+
+if(name && phone){
+c.name=name;
+c.phone=phone;
+save();
+openPopup(currentId);
+}
+}
+
 /* PDF */
 function downloadPDFPopup(){
 const { jsPDF } = window.jspdf;
@@ -337,31 +362,6 @@ doc.text("İsim: "+c.name,20,40);
 doc.text("Telefon: "+c.phone,20,50);
 doc.text("Borç: "+c.debt,20,60);
 doc.save(c.name+".pdf");
-}
-
-/* EDIT CUSTOMER */
-function openEditModal(){
-const c=customers.find(x=>x.id===currentId);
-
-document.getElementById("editName").value=c.name;
-document.getElementById("editPhone").value=c.phone;
-
-document.getElementById("editModal").style.display="flex";
-}
-
-function closeEditModal(){
-document.getElementById("editModal").style.display="none";
-}
-
-function saveEdit(){
-const c=customers.find(x=>x.id===currentId);
-
-c.name=document.getElementById("editName").value.trim();
-c.phone=document.getElementById("editPhone").value.trim();
-
-save();
-closeEditModal();
-openPopup(currentId);
 }
 
 /* RENDER */
