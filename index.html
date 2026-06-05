@@ -92,7 +92,7 @@ border-radius:6px;
 font-size:12px;
 }
 
-/* INPUT MODAL */
+/* CUSTOM INPUT */
 #inputModal{
 display:none;
 position:fixed;
@@ -110,7 +110,7 @@ width:80%;
 max-width:300px;
 }
 
-/* ALERT MODAL */
+/* ALERT */
 #alertBox{
 display:none;
 position:fixed;
@@ -141,7 +141,7 @@ border:2px solid #1DB954;
 
 <h3>Yeni Müşteri</h3>
 <input id="name" placeholder="Müşteri adı">
-<input id="phone" placeholder="Telefon">
+<input id="phone" placeholder="Telefon (sadece rakam)">
 <button onclick="addCustomer()">Ekle</button>
 
 <h3>Arama</h3>
@@ -192,7 +192,7 @@ border:2px solid #1DB954;
 </div>
 </div>
 
-<!-- ALERT (ÖZEL UYARI) -->
+<!-- ALERT -->
 <div id="alertBox">
 <div>
 <p id="alertText">Uyarı</p>
@@ -211,7 +211,7 @@ localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
-/* CUSTOM ALERT */
+/* ALERT SYSTEM */
 function showAlert(msg){
 document.getElementById("alertText").innerText = msg;
 document.getElementById("alertBox").style.display = "flex";
@@ -221,13 +221,19 @@ function closeAlert(){
 document.getElementById("alertBox").style.display = "none";
 }
 
-/* ADD CUSTOMER */
+/* ADD CUSTOMER (FULL FIX) */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.trim();
 
 if(!name || !phone){
 showAlert("Lütfen bilgileri doldurunuz");
+return;
+}
+
+/* 🔥 SADECE SAYI */
+if(!/^[0-9]+$/.test(phone)){
+showAlert("Telefon sadece rakam olmalıdır");
 return;
 }
 
@@ -245,7 +251,7 @@ document.getElementById("phone").value="";
 save();
 }
 
-/* POPUP */
+/* OPEN POPUP */
 function openPopup(id){
 currentId=id;
 const c=customers.find(x=>x.id===id);
@@ -343,12 +349,22 @@ const c=customers.find(x=>x.id===currentId);
 const name=prompt("Yeni isim:",c.name);
 const phone=prompt("Yeni telefon:",c.phone);
 
-if(name && phone){
+/* validation */
+if(!name || !phone){
+showAlert("Boş bırakılamaz");
+return;
+}
+
+if(!/^[0-9]+$/.test(phone)){
+showAlert("Telefon sadece rakam olmalı");
+return;
+}
+
 c.name=name;
 c.phone=phone;
+
 save();
 openPopup(currentId);
-}
 }
 
 /* PDF */
