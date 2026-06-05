@@ -49,12 +49,16 @@ border-radius:10px;
 cursor:pointer;
 }
 
-.small{
+.small{ font-size:12px; color:#aaa; }
+
+.actions button{
+width:auto;
+margin:5px 5px 0 0;
+padding:6px 10px;
 font-size:12px;
-color:#aaa;
 }
 
-/* POPUP */
+/* ================= POPUP ================= */
 .popup{
 display:none;
 position:fixed;
@@ -71,11 +75,44 @@ max-height:90vh;
 overflow:auto;
 }
 
-.actions button{
-width:auto;
-margin:5px 5px 0 0;
-padding:6px 10px;
-font-size:12px;
+/* ================= DELETE MODAL ================= */
+.deleteModal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.8);
+justify-content:center;
+align-items:center;
+}
+
+.deleteBox{
+background:#2c2c2c;
+padding:20px;
+border-radius:12px;
+text-align:center;
+width:90%;
+max-width:320px;
+border:2px solid #e74c3c;
+}
+
+.deleteBox h3{
+color:#e74c3c;
+margin-bottom:10px;
+}
+
+.deleteBox button{
+margin-top:10px;
+}
+
+.danger{
+background:#e74c3c !important;
+}
+
+.cancel{
+background:#555 !important;
 }
 
 .history{
@@ -84,11 +121,6 @@ padding:6px;
 margin-top:5px;
 border-radius:6px;
 font-size:12px;
-}
-
-/* SİL BUTONU */
-.deleteBtn{
-background:#e74c3c !important;
 }
 </style>
 </head>
@@ -112,7 +144,7 @@ background:#e74c3c !important;
 
 </div>
 
-<!-- POPUP -->
+<!-- ================= POPUP ================= -->
 <div class="popup" id="popup">
 <div class="popup-content">
 
@@ -124,7 +156,7 @@ background:#e74c3c !important;
 <button onclick="addDebtPopup()">+ Borç</button>
 <button onclick="payDebtPopup()">Ödeme</button>
 <button onclick="downloadPDFPopup()">📄 PDF</button>
-<button class="deleteBtn" onclick="deleteCustomerPopup()">🗑 Sil</button>
+<button style="background:#e74c3c" onclick="openDeleteModal()">🗑 Sil</button>
 <button onclick="closePopup()">Kapat</button>
 </div>
 
@@ -134,15 +166,28 @@ background:#e74c3c !important;
 </div>
 </div>
 
+<!-- ================= DELETE MODAL ================= -->
+<div class="deleteModal" id="deleteModal">
+<div class="deleteBox">
+<h3>⚠ UYARI</h3>
+<p>Bu müşteriyi silmek istediğine emin misin?</p>
+
+<button class="danger" onclick="confirmDelete()">Evet, Sil</button>
+<button class="cancel" onclick="closeDeleteModal()">İptal</button>
+</div>
+</div>
+
 <script>
 let customers = JSON.parse(localStorage.getItem("customers")) || [];
 let currentId = null;
 
+/* ================= SAVE ================= */
 function save(){
 localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
+/* ================= ADD ================= */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.trim();
@@ -157,9 +202,13 @@ debt:0,
 history:[]
 });
 
+document.getElementById("name").value="";
+document.getElementById("phone").value="";
+
 save();
 }
 
+/* ================= HISTORY ================= */
 function addHistory(c,text){
 c.history.push({
 text,
@@ -167,6 +216,7 @@ date:new Date().toLocaleString()
 });
 }
 
+/* ================= SEARCH ================= */
 function getFiltered(){
 const q=document.getElementById("search").value.toLowerCase();
 return customers.filter(c=>
@@ -174,7 +224,7 @@ return customers.filter(c=>
 );
 }
 
-/* ========== POPUP ========== */
+/* ================= POPUP ================= */
 function openPopup(id){
 currentId=id;
 const c=customers.find(x=>x.id===id);
@@ -191,7 +241,7 @@ function closePopup(){
 document.getElementById("popup").style.display="none";
 }
 
-/* ========== HISTORY ========== */
+/* ================= HISTORY ================= */
 function renderHistory(c){
 let html="";
 (c.history||[]).slice().reverse().forEach(h=>{
@@ -200,14 +250,16 @@ html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 document.getElementById("history").innerHTML=html || "Kayıt yok";
 }
 
-/* ========== BORÇ / ÖDEME ========== */
+/* ================= BORÇ ================= */
 function addDebtPopup(){
 const amount=prompt("Borç:");
 if(!amount) return;
 
 const c=customers.find(x=>x.id===currentId);
 c.debt+=Number(amount);
+
 addHistory(c,"+ "+amount+"₺ borç eklendi");
+
 save();
 openPopup(currentId);
 }
@@ -218,26 +270,30 @@ if(!amount) return;
 
 const c=customers.find(x=>x.id===currentId);
 c.debt-=Number(amount);
+
 addHistory(c,"- "+amount+"₺ ödeme alındı");
+
 save();
 openPopup(currentId);
 }
 
-/* ========== SİLME (ONAYLI) ========== */
-function deleteCustomerPopup(){
-
-const confirmDelete = confirm("Müşteriyi silmek istediğinize emin misiniz?");
-
-if(!confirmDelete){
-return; // iptal
+/* ================= CUSTOM DELETE ================= */
+function openDeleteModal(){
+document.getElementById("deleteModal").style.display="flex";
 }
 
+function closeDeleteModal(){
+document.getElementById("deleteModal").style.display="none";
+}
+
+function confirmDelete(){
 customers = customers.filter(x => x.id !== currentId);
 save();
+closeDeleteModal();
 closePopup();
 }
 
-/* ========== PDF ========== */
+/* ================= PDF ================= */
 function downloadPDFPopup(){
 const { jsPDF } = window.jspdf;
 const c=customers.find(x=>x.id===currentId);
@@ -249,7 +305,7 @@ doc.text("Borç: "+c.debt+" TL",20,50);
 doc.save(c.name+".pdf");
 }
 
-/* ========== RENDER ========== */
+/* ================= RENDER ================= */
 function render(){
 const list=document.getElementById("list");
 list.innerHTML="";
