@@ -3,26 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fly Müzik</title>
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
+<title>Borç Takip</title>
 
+<style>
 body{
+font-family:Arial;
+margin:0;
 background:#121212;
-color:#fff;
-padding-bottom:120px;
+color:white;
 }
 
 header{
 background:#1DB954;
-padding:20px;
+padding:15px;
 text-align:center;
-font-size:28px;
+font-size:22px;
 font-weight:bold;
 }
 
@@ -30,190 +25,150 @@ font-weight:bold;
 padding:15px;
 }
 
-.search{
-display:flex;
-gap:10px;
-margin-bottom:20px;
-}
-
-.search input{
-flex:1;
-padding:14px;
-border:none;
-border-radius:10px;
-font-size:16px;
-}
-
-.search button{
-padding:14px 20px;
-border:none;
-border-radius:10px;
-background:#1DB954;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-.song{
-display:flex;
-align-items:center;
-background:#1e1e1e;
-border-radius:12px;
+input, button{
 padding:10px;
-margin-bottom:10px;
-gap:12px;
-}
-
-.song img{
-width:80px;
-height:80px;
-border-radius:10px;
-object-fit:cover;
-}
-
-.info{
-flex:1;
-}
-
-.title{
-font-size:18px;
-font-weight:bold;
-}
-
-.artist{
+margin:5px 0;
+width:100%;
+border:none;
+border-radius:8px;
 font-size:14px;
-color:#aaa;
-margin-top:4px;
 }
 
-.play{
+button{
 background:#1DB954;
 color:white;
-border:none;
-padding:10px 14px;
-border-radius:8px;
+font-weight:bold;
 cursor:pointer;
 }
 
-.player{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:#181818;
-padding:15px;
-border-top:1px solid #333;
+.card{
+background:#1e1e1e;
+padding:10px;
+margin-top:10px;
+border-radius:10px;
 }
 
-#nowPlaying{
-margin-bottom:8px;
-font-size:14px;
+.customer{
+border-bottom:1px solid #333;
+padding:10px 0;
 }
 
-audio{
-width:100%;
+.small{
+font-size:12px;
+color:#aaa;
+}
+
+.actions button{
+width:auto;
+margin-right:5px;
+padding:5px 10px;
+font-size:12px;
 }
 </style>
 </head>
-<body>
-<header>🎵 Fly Müzik</header>
-<div class="container">
-<div class="search">
-<input id="searchInput" type="text" placeholder="Şarkı veya sanatçı ara">
-<button onclick="searchMusic()">Ara</button>
-</div>
-<div id="results"></div>
-</div>
 
-<div class="player">
-<div id="nowPlaying">Bir şarkı seç...</div>
-<audio id="audioPlayer" controls></audio>
+<body>
+
+<header>💰 Borç Takip Uygulaması</header>
+
+<div class="container">
+
+<h3>Yeni Müşteri</h3>
+
+<input id="name" placeholder="Müşteri adı">
+<input id="phone" placeholder="Telefon (opsiyonel)">
+<button onclick="addCustomer()">Müşteri Ekle</button>
+
+<h3>Müşteriler</h3>
+<div id="list"></div>
+
 </div>
 
 <script>
-const resultsDiv = document.getElementById("results");
-const player = document.getElementById("audioPlayer");
-const nowPlaying = document.getElementById("nowPlaying");
+let customers = JSON.parse(localStorage.getItem("customers")) || [];
 
-// Tarayıcı engelini (CORS) aşmak için güvenli köprü adresi
-const proxy = "https://corsproxy.io/?url=";
-const searchApi = "https://pipedapi.kavin.rocks/search?filter=videos&q=";
-const streamApi = "https://pipedapi.kavin.rocks/streams/";
-
-async function searchMusic(){
-    const query = document.getElementById("searchInput").value.trim();
-
-    if(!query){
-        alert("Şarkı adı gir.");
-        return;
-    }
-
-    resultsDiv.innerHTML = "Aranıyor...";
-
-    try {
-        // İsteği proxy köprüsü üzerinden güvenli bir şekilde atıyoruz
-        const response = await fetch(proxy + encodeURIComponent(searchApi + encodeURIComponent(query)));
-        
-        if (!response.ok) {
-            throw new Error("Sunucu hatası");
-        }
-
-        const data = await response.json();
-        resultsDiv.innerHTML = "";
-
-        if(!data.content || data.content.length === 0){
-            resultsDiv.innerHTML = "Sonuç bulunamadı.";
-            return;
-        }
-
-        data.content.forEach(video => {
-            if(video.type !== "video") return;
-
-            const cover = video.thumbnail ? video.thumbnail : "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150";
-
-            const div = document.createElement("div");
-            div.className = "song";
-            div.innerHTML = `
-                <img src="${cover}">
-                <div class="info">
-                    <div class="title">${video.title}</div>
-                    <div class="artist">${video.uploaderName}</div>
-                </div>
-                <button class="play">Çal</button>
-            `;
-
-            div.querySelector(".play").onclick = async () => {
-                nowPlaying.textContent = "Yükleniyor...";
-                
-                try {
-                    const videoId = video.url.split("v=")[1];
-                    // Ses dosyasını çekerken de proxy kullanıyoruz
-                    const streamResponse = await fetch(proxy + encodeURIComponent(streamApi + videoId));
-                    const streamData = await streamResponse.json();
-                    
-                    if(streamData.audioStreams && streamData.audioStreams.length > 0){
-                        // Ses dosyasını oynatıcıya bağlıyoruz
-                        player.src = streamData.audioStreams[0].url;
-                        await player.play();
-                        nowPlaying.textContent = video.title;
-                    } else {
-                        alert("Bu şarkının ses dosyası alınamadı.");
-                        nowPlaying.textContent = "Bir şarkı seç...";
-                    }
-                } catch(pErr) {
-                    alert("Şarkı şu an oynatılamadı, lütfen başka bir şarkı deneyin.");
-                    nowPlaying.textContent = "Bir şarkı seç...";
-                }
-            };
-
-            resultsDiv.appendChild(div);
-        });
-
-    } catch(err) {
-        console.error(err);
-        resultsDiv.innerHTML = "HATA: Şu an sunucuya bağlanılamıyor, lütfen az sonra tekrar deneyin.";
-    }
+function save(){
+localStorage.setItem("customers", JSON.stringify(customers));
+render();
 }
+
+function addCustomer(){
+const name = document.getElementById("name").value;
+const phone = document.getElementById("phone").value;
+
+if(!name){
+alert("İsim gir");
+return;
+}
+
+customers.push({
+id: Date.now(),
+name,
+phone,
+debt: 0
+});
+
+document.getElementById("name").value = "";
+document.getElementById("phone").value = "";
+
+save();
+}
+
+function addDebt(id){
+const amount = prompt("Borç miktarı gir:");
+if(!amount) return;
+
+const customer = customers.find(c => c.id === id);
+customer.debt += Number(amount);
+
+save();
+}
+
+function payDebt(id){
+const amount = prompt("Ödeme miktarı gir:");
+if(!amount) return;
+
+const customer = customers.find(c => c.id === id);
+customer.debt -= Number(amount);
+
+save();
+}
+
+function deleteCustomer(id){
+customers = customers.filter(c => c.id !== id);
+save();
+}
+
+function render(){
+const list = document.getElementById("list");
+list.innerHTML = "";
+
+customers.forEach(c => {
+
+const div = document.createElement("div");
+div.className = "card";
+
+div.innerHTML = `
+<div class="customer">
+<b>${c.name}</b><br>
+<span class="small">${c.phone || ""}</span><br>
+<b>Toplam Borç: ${c.debt} ₺</b>
+</div>
+
+<div class="actions">
+<button onclick="addDebt(${c.id})">+ Borç</button>
+<button onclick="payDebt(${c.id})">Ödeme</button>
+<button onclick="deleteCustomer(${c.id})">Sil</button>
+</div>
+`;
+
+list.appendChild(div);
+
+});
+}
+
+render();
 </script>
+
 </body>
 </html>
