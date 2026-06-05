@@ -3,9 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Borç Takip Pro</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>Borç Takip</title>
 
 <style>
 body{
@@ -15,7 +13,6 @@ background:#121212;
 color:white;
 }
 
-/* HEADER */
 header{
 background:#1DB954;
 padding:15px;
@@ -24,7 +21,6 @@ font-size:22px;
 font-weight:bold;
 }
 
-/* CONTAINER */
 .container{ padding:15px; }
 
 input, button{
@@ -43,7 +39,6 @@ font-weight:bold;
 cursor:pointer;
 }
 
-/* CARD */
 .card{
 background:#1e1e1e;
 padding:10px;
@@ -52,18 +47,11 @@ border-radius:10px;
 cursor:pointer;
 }
 
-/* SMALL */
-.small{ font-size:12px; color:#aaa; }
-
-/* ACTIONS */
-.actions button{
-width:auto;
-margin:5px 5px 0 0;
-padding:6px 10px;
+.small{
 font-size:12px;
+color:#aaa;
 }
 
-/* POPUP */
 .popup{
 display:none;
 position:fixed;
@@ -79,90 +67,22 @@ border-radius:10px;
 max-height:90vh;
 overflow:auto;
 }
-
-/* DELETE */
-.deleteModal{
-display:none;
-position:fixed;
-top:0;left:0;right:0;bottom:0;
-background:rgba(0,0,0,0.8);
-justify-content:center;
-align-items:center;
-}
-
-.deleteBox{
-background:#2c2c2c;
-padding:20px;
-border-radius:12px;
-text-align:center;
-border:2px solid #e74c3c;
-}
-
-/* PIN SCREEN */
-#pinScreen{
-position:fixed;
-top:0;left:0;right:0;bottom:0;
-background:#0f0f0f;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
-gap:10px;
-}
-
-#pinScreen input{
-width:200px;
-text-align:center;
-font-size:18px;
-}
-
-/* DASHBOARD */
-.dashboard{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
-margin-bottom:10px;
-}
-
-.box{
-background:#1e1e1e;
-padding:10px;
-border-radius:10px;
-text-align:center;
-}
 </style>
 </head>
 
 <body>
 
-<!-- PIN -->
-<div id="pinScreen">
-<h2>🔐 Giriş PIN</h2>
-<input id="pinInput" type="password" placeholder="PIN gir">
-<button onclick="checkPin()">Giriş</button>
-</div>
-
-<header>💰 Borç Takip PRO</header>
+<header>💰 Borç Takip</header>
 
 <div class="container">
-
-<!-- DASHBOARD -->
-<div class="dashboard">
-<div class="box">👥 <div id="totalCustomers">0</div></div>
-<div class="box">💰 <div id="totalDebt">0</div></div>
-</div>
 
 <h3>Yeni Müşteri</h3>
 <input id="name" placeholder="Müşteri adı">
 <input id="phone" placeholder="Telefon">
 <button onclick="addCustomer()">Ekle</button>
 
-<h3>🔍 Ara</h3>
+<h3>Arama</h3>
 <input id="search" oninput="render()" placeholder="Ara...">
-
-<h3>Yedekleme</h3>
-<button onclick="downloadBackup()">📥 Yedek İndir</button>
-<input type="file" onchange="uploadBackup(event)">
 
 <h3>Müşteriler</h3>
 <div id="list"></div>
@@ -177,26 +97,10 @@ text-align:center;
 <p id="pPhone"></p>
 <p><b id="pDebt"></b></p>
 
-<div class="actions">
 <button onclick="addDebtPopup()">+ Borç</button>
 <button onclick="payDebtPopup()">Ödeme</button>
-<button onclick="downloadPDFPopup()">📄 PDF</button>
-<button onclick="openDeleteModal()">🗑 Sil</button>
 <button onclick="closePopup()">Kapat</button>
-</div>
 
-<h3>İşlem Geçmişi</h3>
-<div id="history"></div>
-
-</div>
-</div>
-
-<!-- DELETE -->
-<div class="deleteModal" id="deleteModal">
-<div class="deleteBox">
-<h3 style="color:#e74c3c">Silinsin mi?</h3>
-<button onclick="confirmDelete()">Evet</button>
-<button onclick="closeDeleteModal()">İptal</button>
 </div>
 </div>
 
@@ -205,27 +109,16 @@ text-align:center;
 let customers = JSON.parse(localStorage.getItem("customers")) || [];
 let currentId = null;
 
-/* PIN */
-function checkPin(){
-const pin = document.getElementById("pinInput").value;
-if(pin === "1234"){
-document.getElementById("pinScreen").style.display="none";
-}else{
-alert("Hatalı PIN");
-}
-}
-
 /* SAVE */
 function save(){
 localStorage.setItem("customers", JSON.stringify(customers));
-updateDashboard();
 render();
 }
 
-/* ADD */
+/* ADD CUSTOMER */
 function addCustomer(){
-const name=document.getElementById("name").value.trim();
-const phone=document.getElementById("phone").value.trim();
+const name = document.getElementById("name").value.trim();
+const phone = document.getElementById("phone").value.trim();
 
 if(!name) return;
 
@@ -233,153 +126,85 @@ customers.push({
 id:Date.now(),
 name,
 phone,
-debt:0,
-history:[]
+debt:0
 });
+
+document.getElementById("name").value="";
+document.getElementById("phone").value="";
 
 save();
 }
 
-/* HISTORY */
-function addHistory(c,text){
-c.history.push({
-text,
-date:new Date().toLocaleString()
-});
-}
-
-/* DASHBOARD */
-function updateDashboard(){
-document.getElementById("totalCustomers").innerText = customers.length;
-
-let total = 0;
-customers.forEach(c=> total += (c.debt || 0));
-
-document.getElementById("totalDebt").innerText = total;
-}
-
 /* FILTER */
 function getFiltered(){
-const q=document.getElementById("search").value.toLowerCase();
-return customers.filter(c=>
+const q = document.getElementById("search").value.toLowerCase();
+return customers.filter(c =>
 (c.name||"").toLowerCase().includes(q)
 );
 }
 
-/* POPUP */
+/* OPEN POPUP */
 function openPopup(id){
-currentId=id;
-const c=customers.find(x=>x.id===id);
+currentId = id;
+const c = customers.find(x=>x.id===id);
 
 document.getElementById("popup").style.display="block";
-document.getElementById("pName").innerText=c.name;
-document.getElementById("pPhone").innerText=c.phone||"";
-document.getElementById("pDebt").innerText="Borç: "+c.debt+" ₺";
-
-renderHistory(c);
+document.getElementById("pName").innerText = c.name;
+document.getElementById("pPhone").innerText = c.phone || "";
+document.getElementById("pDebt").innerText = "Borç: " + c.debt + " ₺";
 }
 
 function closePopup(){
 document.getElementById("popup").style.display="none";
 }
 
-/* HISTORY */
-function renderHistory(c){
-let html="";
-(c.history||[]).slice().reverse().forEach(h=>{
-html+=`<div style="background:#111;padding:5px;margin-top:5px;border-radius:5px">
-🕒 ${h.date}<br>${h.text}
-</div>`;
-});
-document.getElementById("history").innerHTML=html || "Yok";
-}
-
-/* BORÇ */
+/* ✅ BORÇ EKLE (DÜZELTİLMİŞ) */
 function addDebtPopup(){
-const a=prompt("Borç:");
-if(!a) return;
+const a = prompt("Borç miktarı (sadece sayı):");
 
-const c=customers.find(x=>x.id===currentId);
-c.debt+=Number(a);
-addHistory(c,"+ "+a+"₺ borç");
+if(a === null) return;
+
+if(isNaN(a) || a.trim() === ""){
+alert("Lütfen sadece sayı gir!");
+return;
+}
+
+const c = customers.find(x=>x.id===currentId);
+c.debt += parseFloat(a);
+
 save();
 openPopup(currentId);
 }
 
+/* ✅ ÖDEME (DÜZELTİLMİŞ) */
 function payDebtPopup(){
-const a=prompt("Ödeme:");
-if(!a) return;
+const a = prompt("Ödeme miktarı (sadece sayı):");
 
-const c=customers.find(x=>x.id===currentId);
-c.debt-=Number(a);
-addHistory(c,"- "+a+"₺ ödeme");
+if(a === null) return;
+
+if(isNaN(a) || a.trim() === ""){
+alert("Lütfen sadece sayı gir!");
+return;
+}
+
+const c = customers.find(x=>x.id===currentId);
+c.debt -= parseFloat(a);
+
 save();
 openPopup(currentId);
-}
-
-/* DELETE */
-function openDeleteModal(){
-document.getElementById("deleteModal").style.display="flex";
-}
-
-function closeDeleteModal(){
-document.getElementById("deleteModal").style.display="none";
-}
-
-function confirmDelete(){
-customers = customers.filter(x=>x.id!==currentId);
-save();
-closeDeleteModal();
-closePopup();
-}
-
-/* PDF */
-function downloadPDFPopup(){
-const { jsPDF } = window.jspdf;
-const c=customers.find(x=>x.id===currentId);
-
-const doc=new jsPDF();
-doc.text("BORÇ RAPORU",20,20);
-doc.text("İsim: "+c.name,20,40);
-doc.text("Borç: "+c.debt,20,50);
-doc.save(c.name+".pdf");
-}
-
-/* BACKUP */
-function downloadBackup(){
-const data = JSON.stringify(customers);
-const blob = new Blob([data],{type:"application/json"});
-const url = URL.createObjectURL(blob);
-
-const a=document.createElement("a");
-a.href=url;
-a.download="yedek.json";
-a.click();
-}
-
-function uploadBackup(event){
-const file = event.target.files[0];
-const reader = new FileReader();
-
-reader.onload = function(e){
-customers = JSON.parse(e.target.result);
-save();
-};
-
-reader.readAsText(file);
 }
 
 /* RENDER */
 function render(){
-const list=document.getElementById("list");
+const list = document.getElementById("list");
 list.innerHTML="";
 
 getFiltered().forEach(c=>{
-const div=document.createElement("div");
+const div = document.createElement("div");
 div.className="card";
-div.onclick=()=>openPopup(c.id);
+div.onclick = ()=>openPopup(c.id);
 
-div.innerHTML=`
+div.innerHTML = `
 <b>${c.name}</b><br>
 <span class="small">${c.phone||""}</span><br>
 <b>${c.debt} ₺</b>
@@ -387,8 +212,6 @@ div.innerHTML=`
 
 list.appendChild(div);
 });
-
-updateDashboard();
 }
 
 render();
