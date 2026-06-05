@@ -47,8 +47,6 @@ padding:10px;
 margin-top:10px;
 border-radius:10px;
 cursor:pointer;
-position:relative;
-transition:0.2s;
 }
 
 .small{ font-size:12px; color:#aaa; }
@@ -69,13 +67,14 @@ max-height:90vh;
 overflow:auto;
 }
 
-.deleteModal{
+.deleteModal, #editModal{
 display:none;
 position:fixed;
 top:0;left:0;right:0;bottom:0;
 background:rgba(0,0,0,0.8);
 justify-content:center;
 align-items:center;
+z-index:9999;
 }
 
 .deleteBox{
@@ -86,25 +85,7 @@ text-align:center;
 border:2px solid #e74c3c;
 }
 
-.history{
-background:#111;
-padding:6px;
-margin-top:5px;
-border-radius:6px;
-font-size:12px;
-}
-
-#inputModal, #alertBox, #editModal{
-display:none;
-position:fixed;
-top:0;left:0;right:0;bottom:0;
-background:rgba(0,0,0,0.7);
-justify-content:center;
-align-items:center;
-z-index:9999;
-}
-
-#inputModal div, #alertBox div, #editModal div{
+#editModal div{
 background:#1e1e1e;
 padding:20px;
 border-radius:12px;
@@ -114,15 +95,24 @@ text-align:center;
 border:2px solid #1DB954;
 }
 
-/* swipe effect */
-.card.swipe-left{
-transform:translateX(-80px);
-background:#2a1a1a;
+#inputModal, #alertBox{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+z-index:9999;
 }
 
-.card.swipe-right{
-transform:translateX(80px);
-background:#1a2a1a;
+#inputModal div, #alertBox div{
+background:#1e1e1e;
+padding:20px;
+border-radius:12px;
+width:80%;
+max-width:300px;
+text-align:center;
+border:2px solid #1DB954;
 }
 </style>
 </head>
@@ -136,9 +126,7 @@ background:#1a2a1a;
 <h3>Yeni Müşteri</h3>
 
 <input id="name" placeholder="Müşteri adı">
-
 <input id="phone" placeholder="Telefon" maxlength="10" oninput="formatPhone(this)">
-
 <button onclick="addCustomer()">Ekle</button>
 
 <h3>Arama</h3>
@@ -171,22 +159,25 @@ background:#1a2a1a;
 </div>
 </div>
 
-<!-- DELETE -->
+<!-- DELETE MODAL -->
 <div class="deleteModal" id="deleteModal">
 <div class="deleteBox">
-<h3>Silinsin mi?</h3>
+<h3>Silmek istediğinize emin misiniz?</h3>
 <button onclick="confirmDelete()">Evet</button>
 <button onclick="closeDeleteModal()">İptal</button>
 </div>
 </div>
 
-<!-- EDIT -->
+<!-- EDIT MODAL -->
 <div id="editModal">
 <div>
 <h3>Düzenle</h3>
+
 <input id="editName" placeholder="İsim">
 <input id="editPhone" placeholder="Telefon" maxlength="10" oninput="formatPhone(this)">
+
 <br><br>
+
 <button onclick="saveEdit()">Kaydet</button>
 <button onclick="closeEditModal()" style="background:#555;">İptal</button>
 </div>
@@ -241,16 +232,22 @@ const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.replace(/\D/g,"");
 
 if(!name||!phone){
-showAlert("Eksik bilgi");
+showAlert("Lütfen bilgileri doldurunuz");
 return;
 }
 
 if(customers.some(c=>c.phone===phone)){
-showAlert("Bu numara kayıtlı");
+showAlert("Bu numara zaten kayıtlı");
 return;
 }
 
-customers.push({id:Date.now(),name,phone,debt:0,history:[]});
+customers.push({
+id:Date.now(),
+name,
+phone,
+debt:0,
+history:[]
+});
 
 document.getElementById("name").value="";
 document.getElementById("phone").value="";
@@ -258,14 +255,14 @@ document.getElementById("phone").value="";
 save();
 }
 
-/* LIVE SEARCH */
+/* SEARCH */
 function render(){
 const q=document.getElementById("search").value.toLowerCase();
 const list=document.getElementById("list");
 list.innerHTML="";
 
 customers
-.filter(c=>c.name.toLowerCase().includes(q) || c.phone.includes(q))
+.filter(c=>c.name.toLowerCase().includes(q)||c.phone.includes(q))
 .forEach(c=>{
 
 const div=document.createElement("div");
@@ -278,44 +275,8 @@ div.innerHTML=`
 
 div.onclick=()=>openPopup(c.id);
 
-/* SWIPE */
-let startX=0;
-
-div.addEventListener("touchstart",e=>{
-startX=e.touches[0].clientX;
-});
-
-div.addEventListener("touchend",e=>{
-let diff=e.changedTouches[0].clientX-startX;
-
-if(diff<-60){
-div.classList.add("swipe-left");
-openDeleteQuick(c.id);
-}
-
-if(diff>60){
-div.classList.add("swipe-right");
-openEditQuick(c.id);
-}
-
-setTimeout(()=>{
-div.classList.remove("swipe-left");
-div.classList.remove("swipe-right");
-},300);
-});
-
 list.appendChild(div);
 });
-}
-
-/* QUICK ACTIONS */
-function openDeleteQuick(id){
-currentId=id;
-confirmDelete();
-}
-
-function openEditQuick(id){
-openEditModal(id);
 }
 
 /* POPUP */
@@ -333,23 +294,25 @@ function closePopup(){
 document.getElementById("popup").style.display="none";
 }
 
-/* WHATSAPP */
-function openWhatsApp(){
-const c=customers.find(x=>x.id===currentId);
-window.open(`https://wa.me/90${c.phone}`,"_blank");
+/* DELETE */
+function openDeleteModal(){
+document.getElementById("deleteModal").style.display="flex";
 }
 
-/* DELETE */
+function closeDeleteModal(){
+document.getElementById("deleteModal").style.display="none";
+}
+
 function confirmDelete(){
 customers=customers.filter(x=>x.id!==currentId);
 save();
 closePopup();
+closeDeleteModal();
 }
 
 /* EDIT */
-function openEditModal(id){
-currentId=id;
-const c=customers.find(x=>x.id===id);
+function openEditModal(){
+const c=customers.find(x=>x.id===currentId);
 
 document.getElementById("editName").value=c.name;
 document.getElementById("editPhone").value=c.phone;
@@ -364,26 +327,40 @@ document.getElementById("editModal").style.display="none";
 function saveEdit(){
 const c=customers.find(x=>x.id===currentId);
 
-c.name=document.getElementById("editName").value;
-c.phone=document.getElementById("editPhone").value.replace(/\D/g,"");
+const name=document.getElementById("editName").value.trim();
+const phone=document.getElementById("editPhone").value.replace(/\D/g,"");
+
+if(!name||!phone){
+showAlert("Eksik bilgi");
+return;
+}
+
+c.name=name;
+c.phone=phone;
 
 save();
 closeEditModal();
 }
 
+/* WHATSAPP */
+function openWhatsApp(){
+const c=customers.find(x=>x.id===currentId);
+window.open(`https://wa.me/90${c.phone}`,"_blank");
+}
+
 /* BORÇ */
 function addDebtPopup(){
 const c=customers.find(x=>x.id===currentId);
-let val=prompt("Borç:");
-c.debt+=Number(val||0);
+let v=prompt("Borç:");
+c.debt+=Number(v||0);
 save();
 }
 
 /* ÖDEME */
 function payDebtPopup(){
 const c=customers.find(x=>x.id===currentId);
-let val=prompt("Ödeme:");
-c.debt-=Number(val||0);
+let v=prompt("Ödeme:");
+c.debt-=Number(v||0);
 save();
 }
 
