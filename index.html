@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Borç Takip</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
 <style>
 body{
 margin:0;
@@ -23,9 +21,7 @@ font-size:22px;
 font-weight:bold;
 }
 
-.container{
-padding:15px;
-}
+.container{ padding:15px; }
 
 input, button{
 width:100%;
@@ -68,8 +64,12 @@ font-size:12px;
 color:#aaa;
 }
 
-.searchBox{
+.history{
 margin-top:10px;
+padding:8px;
+background:#111;
+border-radius:8px;
+font-size:12px;
 }
 </style>
 </head>
@@ -87,7 +87,7 @@ margin-top:10px;
 <button onclick="addCustomer()">Müşteri Ekle</button>
 
 <h3>🔍 Ara</h3>
-<input id="search" class="searchBox" placeholder="Müşteri ara..." oninput="render()">
+<input id="search" oninput="render()" placeholder="Müşteri ara...">
 
 <h3>Müşteriler</h3>
 <div id="list"></div>
@@ -115,31 +115,40 @@ customers.push({
 id: Date.now(),
 name,
 phone,
-debt: 0
+debt: 0,
+history:[]
 });
-
-document.getElementById("name").value = "";
-document.getElementById("phone").value = "";
 
 save();
 }
 
+function addHistory(c, text){
+c.history.push({
+text,
+date: new Date().toLocaleString()
+});
+}
+
 function addDebt(id){
-const amount = prompt("Borç miktarı:");
+const amount = prompt("Borç:");
 if(!amount) return;
 
 const c = customers.find(x => x.id === id);
 c.debt = (c.debt || 0) + Number(amount);
 
+addHistory(c, "+ " + amount + "₺ borç eklendi");
+
 save();
 }
 
 function payDebt(id){
-const amount = prompt("Ödeme miktarı:");
+const amount = prompt("Ödeme:");
 if(!amount) return;
 
 const c = customers.find(x => x.id === id);
 c.debt = (c.debt || 0) - Number(amount);
+
+addHistory(c, "- " + amount + "₺ ödeme alındı");
 
 save();
 }
@@ -154,34 +163,6 @@ const q = document.getElementById("search").value.toLowerCase();
 return customers.filter(c =>
 (c.name || "").toLowerCase().includes(q)
 );
-}
-
-/* ===================== */
-/*        PDF            */
-/* ===================== */
-function downloadPDF(id){
-const { jsPDF } = window.jspdf;
-const c = customers.find(x => x.id === id);
-
-if(!c){
-alert("Müşteri bulunamadı");
-return;
-}
-
-const doc = new jsPDF();
-
-doc.setFont("helvetica","bold");
-doc.setFontSize(16);
-doc.text("BORÇ RAPORU", 20, 20);
-
-doc.setFont("helvetica","normal");
-doc.setFontSize(12);
-
-doc.text("İsim: " + (c.name || "-"), 20, 40);
-doc.text("Telefon: " + (c.phone || "-"), 20, 50);
-doc.text("Toplam Borç: " + (c.debt || 0) + " TL", 20, 60);
-
-doc.save((c.name || "musteri") + "_borc.pdf");
 }
 
 function render(){
@@ -200,21 +181,26 @@ filtered.forEach(c => {
 const div = document.createElement("div");
 div.className = "card";
 
+let historyHTML = "";
+(c.history || []).slice().reverse().forEach(h=>{
+historyHTML += `<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
+});
+
 div.innerHTML = `
-<b>${c.name || "-"}</b><br>
+<b>${c.name}</b><br>
 <span class="small">${c.phone || ""}</span><br>
-<b>Toplam Borç: ${c.debt || 0} ₺</b>
+<b>Toplam: ${c.debt || 0} ₺</b>
 
 <div class="actions">
 <button onclick="addDebt(${c.id})">+ Borç</button>
 <button onclick="payDebt(${c.id})">Ödeme</button>
-<button onclick="downloadPDF(${c.id})">📄 PDF</button>
 <button onclick="deleteCustomer(${c.id})">Sil</button>
 </div>
+
+${historyHTML}
 `;
 
 list.appendChild(div);
-
 });
 }
 
