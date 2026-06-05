@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Borç Takip</title>
+<title>Borç Takip PRO</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -47,11 +49,9 @@ border-radius:10px;
 cursor:pointer;
 }
 
-.small{
-font-size:12px;
-color:#aaa;
-}
+.small{ font-size:12px; color:#aaa; }
 
+/* POPUP */
 .popup{
 display:none;
 position:fixed;
@@ -67,12 +67,38 @@ border-radius:10px;
 max-height:90vh;
 overflow:auto;
 }
+
+/* DELETE */
+.deleteModal{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.8);
+justify-content:center;
+align-items:center;
+}
+
+.deleteBox{
+background:#2c2c2c;
+padding:20px;
+border-radius:12px;
+text-align:center;
+border:2px solid #e74c3c;
+}
+
+.history{
+background:#111;
+padding:6px;
+margin-top:5px;
+border-radius:6px;
+font-size:12px;
+}
 </style>
 </head>
 
 <body>
 
-<header>💰 Borç Takip</header>
+<header>💰 Borç Takip PRO</header>
 
 <div class="container">
 
@@ -99,8 +125,22 @@ overflow:auto;
 
 <button onclick="addDebtPopup()">+ Borç</button>
 <button onclick="payDebtPopup()">Ödeme</button>
+<button onclick="downloadPDFPopup()">PDF</button>
+<button onclick="openDeleteModal()">Sil</button>
 <button onclick="closePopup()">Kapat</button>
 
+<h3>Geçmiş</h3>
+<div id="history"></div>
+
+</div>
+</div>
+
+<!-- DELETE -->
+<div class="deleteModal" id="deleteModal">
+<div class="deleteBox">
+<h3>Silinsin mi?</h3>
+<button onclick="confirmDelete()">Evet</button>
+<button onclick="closeDeleteModal()">İptal</button>
 </div>
 </div>
 
@@ -115,10 +155,10 @@ localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
-/* ADD CUSTOMER */
+/* ADD */
 function addCustomer(){
-const name = document.getElementById("name").value.trim();
-const phone = document.getElementById("phone").value.trim();
+const name=document.getElementById("name").value.trim();
+const phone=document.getElementById("phone").value.trim();
 
 if(!name) return;
 
@@ -126,85 +166,132 @@ customers.push({
 id:Date.now(),
 name,
 phone,
-debt:0
+debt:0,
+history:[]
 });
-
-document.getElementById("name").value="";
-document.getElementById("phone").value="";
 
 save();
 }
 
+/* HISTORY */
+function addHistory(c,text){
+c.history.push({
+text,
+date:new Date().toLocaleString()
+});
+}
+
 /* FILTER */
 function getFiltered(){
-const q = document.getElementById("search").value.toLowerCase();
-return customers.filter(c =>
+const q=document.getElementById("search").value.toLowerCase();
+return customers.filter(c=>
 (c.name||"").toLowerCase().includes(q)
 );
 }
 
-/* OPEN POPUP */
+/* POPUP */
 function openPopup(id){
-currentId = id;
-const c = customers.find(x=>x.id===id);
+currentId=id;
+const c=customers.find(x=>x.id===id);
 
 document.getElementById("popup").style.display="block";
-document.getElementById("pName").innerText = c.name;
-document.getElementById("pPhone").innerText = c.phone || "";
-document.getElementById("pDebt").innerText = "Borç: " + c.debt + " ₺";
+document.getElementById("pName").innerText=c.name;
+document.getElementById("pPhone").innerText=c.phone||"";
+document.getElementById("pDebt").innerText="Borç: "+c.debt+" ₺";
+
+renderHistory(c);
 }
 
 function closePopup(){
 document.getElementById("popup").style.display="none";
 }
 
-/* ✅ BORÇ EKLE (DÜZELTİLMİŞ) */
+/* HISTORY */
+function renderHistory(c){
+let html="";
+(c.history||[]).slice().reverse().forEach(h=>{
+html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
+});
+document.getElementById("history").innerHTML=html || "Yok";
+}
+
+/* ================== SADECE BURASI DÜZELTİLDİ ================== */
+
+/* BORÇ EKLE */
 function addDebtPopup(){
 const a = prompt("Borç miktarı (sadece sayı):");
 
 if(a === null) return;
-
 if(isNaN(a) || a.trim() === ""){
-alert("Lütfen sadece sayı gir!");
+alert("Sadece sayı gir!");
 return;
 }
 
-const c = customers.find(x=>x.id===currentId);
-c.debt += parseFloat(a);
+const c=customers.find(x=>x.id===currentId);
+c.debt += Number(a);
 
+addHistory(c,"+ "+a+"₺ borç eklendi");
 save();
 openPopup(currentId);
 }
 
-/* ✅ ÖDEME (DÜZELTİLMİŞ) */
+/* ÖDEME */
 function payDebtPopup(){
 const a = prompt("Ödeme miktarı (sadece sayı):");
 
 if(a === null) return;
-
 if(isNaN(a) || a.trim() === ""){
-alert("Lütfen sadece sayı gir!");
+alert("Sadece sayı gir!");
 return;
 }
 
-const c = customers.find(x=>x.id===currentId);
-c.debt -= parseFloat(a);
+const c=customers.find(x=>x.id===currentId);
+c.debt -= Number(a);
 
+addHistory(c,"- "+a+"₺ ödeme alındı");
 save();
 openPopup(currentId);
 }
 
+/* DELETE */
+function openDeleteModal(){
+document.getElementById("deleteModal").style.display="flex";
+}
+
+function closeDeleteModal(){
+document.getElementById("deleteModal").style.display="none";
+}
+
+function confirmDelete(){
+customers = customers.filter(x=>x.id!==currentId);
+save();
+closeDeleteModal();
+closePopup();
+}
+
+/* PDF */
+function downloadPDFPopup(){
+const { jsPDF } = window.jspdf;
+const c=customers.find(x=>x.id===currentId);
+
+const doc=new jsPDF();
+doc.text("BORÇ RAPORU",20,20);
+doc.text("İsim: "+c.name,20,40);
+doc.text("Borç: "+c.debt,20,50);
+doc.save(c.name+".pdf");
+}
+
 /* RENDER */
 function render(){
-const list = document.getElementById("list");
+const list=document.getElementById("list");
 list.innerHTML="";
 
 getFiltered().forEach(c=>{
-const div = document.createElement("div");
+const div=document.createElement("div");
 div.className="card";
-div.onclick = ()=>openPopup(c.id);
+div.onclick=()=>openPopup(c.id);
 
-div.innerHTML = `
+div.innerHTML=`
 <b>${c.name}</b><br>
 <span class="small">${c.phone||""}</span><br>
 <b>${c.debt} ₺</b>
