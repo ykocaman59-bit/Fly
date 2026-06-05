@@ -85,6 +85,11 @@ margin-top:5px;
 border-radius:6px;
 font-size:12px;
 }
+
+/* SİL BUTONU */
+.deleteBtn{
+background:#e74c3c !important;
+}
 </style>
 </head>
 
@@ -119,6 +124,7 @@ font-size:12px;
 <button onclick="addDebtPopup()">+ Borç</button>
 <button onclick="payDebtPopup()">Ödeme</button>
 <button onclick="downloadPDFPopup()">📄 PDF</button>
+<button class="deleteBtn" onclick="deleteCustomerPopup()">🗑 Sil</button>
 <button onclick="closePopup()">Kapat</button>
 </div>
 
@@ -138,8 +144,8 @@ render();
 }
 
 function addCustomer(){
-const name = document.getElementById("name").value.trim();
-const phone = document.getElementById("phone").value.trim();
+const name=document.getElementById("name").value.trim();
+const phone=document.getElementById("phone").value.trim();
 
 if(!name) return;
 
@@ -162,20 +168,20 @@ date:new Date().toLocaleString()
 }
 
 function getFiltered(){
-const q = document.getElementById("search").value.toLowerCase();
-return customers.filter(c =>
-c.name.toLowerCase().includes(q)
+const q=document.getElementById("search").value.toLowerCase();
+return customers.filter(c=>
+(c.name||"").toLowerCase().includes(q)
 );
 }
 
-/* ========== POPUP AÇ ========== */
+/* ========== POPUP ========== */
 function openPopup(id){
-currentId = id;
-const c = customers.find(x=>x.id===id);
+currentId=id;
+const c=customers.find(x=>x.id===id);
 
 document.getElementById("popup").style.display="block";
 document.getElementById("pName").innerText=c.name;
-document.getElementById("pPhone").innerText=c.phone || "";
+document.getElementById("pPhone").innerText=c.phone||"";
 document.getElementById("pDebt").innerText="Toplam Borç: "+c.debt+" ₺";
 
 renderHistory(c);
@@ -194,16 +200,14 @@ html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 document.getElementById("history").innerHTML=html || "Kayıt yok";
 }
 
-/* ========== ACTIONS ========== */
+/* ========== BORÇ / ÖDEME ========== */
 function addDebtPopup(){
 const amount=prompt("Borç:");
 if(!amount) return;
 
 const c=customers.find(x=>x.id===currentId);
 c.debt+=Number(amount);
-
 addHistory(c,"+ "+amount+"₺ borç eklendi");
-
 save();
 openPopup(currentId);
 }
@@ -214,11 +218,23 @@ if(!amount) return;
 
 const c=customers.find(x=>x.id===currentId);
 c.debt-=Number(amount);
-
 addHistory(c,"- "+amount+"₺ ödeme alındı");
-
 save();
 openPopup(currentId);
+}
+
+/* ========== SİLME (ONAYLI) ========== */
+function deleteCustomerPopup(){
+
+const confirmDelete = confirm("Müşteriyi silmek istediğinize emin misiniz?");
+
+if(!confirmDelete){
+return; // iptal
+}
+
+customers = customers.filter(x => x.id !== currentId);
+save();
+closePopup();
 }
 
 /* ========== PDF ========== */
