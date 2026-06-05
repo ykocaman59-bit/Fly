@@ -64,6 +64,16 @@ margin-right:5px;
 padding:5px 10px;
 font-size:12px;
 }
+
+/* 🔍 ARAMA */
+.searchBox{
+width:100%;
+padding:10px;
+border-radius:8px;
+border:none;
+margin-bottom:10px;
+font-size:14px;
+}
 </style>
 </head>
 
@@ -79,6 +89,9 @@ font-size:12px;
 <input id="phone" placeholder="Telefon (opsiyonel)">
 <button onclick="addCustomer()">Müşteri Ekle</button>
 
+<h3>🔍 Ara</h3>
+<input class="searchBox" id="search" placeholder="Müşteri ara..." oninput="render()">
+
 <h3>Müşteriler</h3>
 <div id="list"></div>
 
@@ -93,8 +106,8 @@ render();
 }
 
 function addCustomer(){
-const name = document.getElementById("name").value;
-const phone = document.getElementById("phone").value;
+const name = document.getElementById("name").value.trim();
+const phone = document.getElementById("phone").value.trim();
 
 if(!name){
 alert("İsim gir");
@@ -139,11 +152,26 @@ customers = customers.filter(c => c.id !== id);
 save();
 }
 
+/* 🔍 FİLTRE */
+function getFiltered(){
+const q = document.getElementById("search").value.toLowerCase();
+return customers.filter(c =>
+c.name.toLowerCase().includes(q)
+);
+}
+
 function render(){
 const list = document.getElementById("list");
 list.innerHTML = "";
 
-customers.forEach(c => {
+const filtered = getFiltered();
+
+if(filtered.length === 0){
+list.innerHTML = "<p>Sonuç bulunamadı</p>";
+return;
+}
+
+filtered.forEach(c => {
 
 const div = document.createElement("div");
 div.className = "card";
