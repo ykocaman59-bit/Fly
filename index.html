@@ -109,6 +109,24 @@ border-radius:12px;
 width:80%;
 max-width:300px;
 }
+
+/* EDIT MODAL */
+#editModal{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+}
+
+#editModal div{
+background:#1e1e1e;
+padding:20px;
+border-radius:12px;
+width:80%;
+max-width:300px;
+}
 </style>
 </head>
 
@@ -143,6 +161,7 @@ max-width:300px;
 <button onclick="payDebtPopup()">Ödeme</button>
 <button onclick="downloadPDFPopup()">PDF</button>
 <button onclick="openDeleteModal()">Sil</button>
+<button onclick="openEditModal()">Düzenle</button>
 <button onclick="closePopup()">Kapat</button>
 
 <h3>Geçmiş</h3>
@@ -160,13 +179,24 @@ max-width:300px;
 </div>
 </div>
 
-<!-- CUSTOM INPUT -->
+<!-- INPUT -->
 <div id="inputModal">
 <div>
 <h3 id="inputTitle">İşlem</h3>
-<input id="numberInput" type="number" placeholder="Sadece sayı">
+<input id="numberInput" type="number">
 <button onclick="confirmInput()">Tamam</button>
 <button onclick="closeInput()" style="background:#555;">İptal</button>
+</div>
+</div>
+
+<!-- EDIT -->
+<div id="editModal">
+<div>
+<h3>Müşteri Düzenle</h3>
+<input id="editName">
+<input id="editPhone">
+<button onclick="saveEdit()">Kaydet</button>
+<button onclick="closeEditModal()" style="background:#555;">İptal</button>
 </div>
 </div>
 
@@ -181,12 +211,15 @@ localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
-/* ADD CUSTOMER */
+/* ADD CUSTOMER (VALIDATION EKLENDİ) */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.trim();
 
-if(!name) return;
+if(!name || !phone){
+alert("Lütfen bilgileri doldurunuz");
+return;
+}
 
 customers.push({
 id:Date.now(),
@@ -196,37 +229,20 @@ debt:0,
 history:[]
 });
 
-save();
-
-/* INPUT TEMİZLE */
 document.getElementById("name").value="";
 document.getElementById("phone").value="";
+
+save();
 }
 
-/* HISTORY */
-function addHistory(c,text){
-c.history.push({
-text,
-date:new Date().toLocaleString()
-});
-}
-
-/* FILTER */
-function getFiltered(){
-const q=document.getElementById("search").value.toLowerCase();
-return customers.filter(c=>
-(c.name||"").toLowerCase().includes(q)
-);
-}
-
-/* POPUP */
+/* OPEN POPUP */
 function openPopup(id){
 currentId=id;
 const c=customers.find(x=>x.id===id);
 
 document.getElementById("popup").style.display="block";
 document.getElementById("pName").innerText=c.name;
-document.getElementById("pPhone").innerText=c.phone||"";
+document.getElementById("pPhone").innerText=c.phone;
 document.getElementById("pDebt").innerText="Borç: "+c.debt+" ₺";
 
 renderHistory(c);
@@ -245,7 +261,7 @@ html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 document.getElementById("history").innerHTML=html || "Yok";
 }
 
-/* CUSTOM INPUT SYSTEM */
+/* INPUT SYSTEM */
 let inputCallback=null;
 
 function openInput(title,callback){
@@ -268,10 +284,7 @@ alert("Sadece sayı gir!");
 return;
 }
 
-if(inputCallback){
 inputCallback(Number(val));
-}
-
 closeInput();
 }
 
@@ -280,8 +293,7 @@ function addDebtPopup(){
 openInput("Borç Ekle",function(val){
 const c=customers.find(x=>x.id===currentId);
 c.debt+=val;
-
-addHistory(c,"+ "+val+"₺ borç eklendi");
+c.history.push({text:"+ "+val+"₺ borç",date:new Date().toLocaleString()});
 save();
 openPopup(currentId);
 });
@@ -289,11 +301,10 @@ openPopup(currentId);
 
 /* ÖDEME */
 function payDebtPopup(){
-openInput("Ödeme Yap",function(val){
+openInput("Ödeme",function(val){
 const c=customers.find(x=>x.id===currentId);
 c.debt-=val;
-
-addHistory(c,"- "+val+"₺ ödeme alındı");
+c.history.push({text:"- "+val+"₺ ödeme",date:new Date().toLocaleString()});
 save();
 openPopup(currentId);
 });
@@ -323,8 +334,34 @@ const c=customers.find(x=>x.id===currentId);
 const doc=new jsPDF();
 doc.text("BORÇ RAPORU",20,20);
 doc.text("İsim: "+c.name,20,40);
-doc.text("Borç: "+c.debt,20,50);
+doc.text("Telefon: "+c.phone,20,50);
+doc.text("Borç: "+c.debt,20,60);
 doc.save(c.name+".pdf");
+}
+
+/* EDIT CUSTOMER */
+function openEditModal(){
+const c=customers.find(x=>x.id===currentId);
+
+document.getElementById("editName").value=c.name;
+document.getElementById("editPhone").value=c.phone;
+
+document.getElementById("editModal").style.display="flex";
+}
+
+function closeEditModal(){
+document.getElementById("editModal").style.display="none";
+}
+
+function saveEdit(){
+const c=customers.find(x=>x.id===currentId);
+
+c.name=document.getElementById("editName").value.trim();
+c.phone=document.getElementById("editPhone").value.trim();
+
+save();
+closeEditModal();
+openPopup(currentId);
 }
 
 /* RENDER */
@@ -332,14 +369,14 @@ function render(){
 const list=document.getElementById("list");
 list.innerHTML="";
 
-getFiltered().forEach(c=>{
+customers.forEach(c=>{
 const div=document.createElement("div");
 div.className="card";
 div.onclick=()=>openPopup(c.id);
 
 div.innerHTML=`
 <b>${c.name}</b><br>
-<span class="small">${c.phone||""}</span><br>
+<span class="small">${c.phone}</span><br>
 <b>${c.debt} ₺</b>
 `;
 
