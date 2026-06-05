@@ -9,8 +9,8 @@
 
 <style>
 body{
-font-family:Arial;
 margin:0;
+font-family:Arial;
 background:#121212;
 color:white;
 }
@@ -28,9 +28,9 @@ padding:15px;
 }
 
 input, button{
-padding:10px;
-margin:5px 0;
 width:100%;
+padding:10px;
+margin-top:5px;
 border:none;
 border-radius:8px;
 font-size:14px;
@@ -50,25 +50,26 @@ margin-top:10px;
 border-radius:10px;
 }
 
+.actions{
+display:flex;
+flex-wrap:wrap;
+gap:5px;
+margin-top:10px;
+}
+
+.actions button{
+width:auto;
+padding:6px 10px;
+font-size:12px;
+}
+
 .small{
 font-size:12px;
 color:#aaa;
 }
 
-.actions button{
-width:auto;
-margin-right:5px;
-padding:5px 10px;
-font-size:12px;
-}
-
 .searchBox{
-width:100%;
-padding:10px;
-border-radius:8px;
-border:none;
-margin-bottom:10px;
-font-size:14px;
+margin-top:10px;
 }
 </style>
 </head>
@@ -83,9 +84,9 @@ font-size:14px;
 
 <input id="name" placeholder="Müşteri adı">
 <input id="phone" placeholder="Telefon">
-<button onclick="addCustomer()">Ekle</button>
+<button onclick="addCustomer()">Müşteri Ekle</button>
 
-<h3>🔍 Arama</h3>
+<h3>🔍 Ara</h3>
 <input id="search" class="searchBox" placeholder="Müşteri ara..." oninput="render()">
 
 <h3>Müşteriler</h3>
@@ -128,7 +129,7 @@ const amount = prompt("Borç miktarı:");
 if(!amount) return;
 
 const c = customers.find(x => x.id === id);
-c.debt += Number(amount);
+c.debt = (c.debt || 0) + Number(amount);
 
 save();
 }
@@ -138,7 +139,7 @@ const amount = prompt("Ödeme miktarı:");
 if(!amount) return;
 
 const c = customers.find(x => x.id === id);
-c.debt -= Number(amount);
+c.debt = (c.debt || 0) - Number(amount);
 
 save();
 }
@@ -151,20 +152,36 @@ save();
 function getFiltered(){
 const q = document.getElementById("search").value.toLowerCase();
 return customers.filter(c =>
-c.name.toLowerCase().includes(q)
+(c.name || "").toLowerCase().includes(q)
 );
 }
 
+/* ===================== */
+/*        PDF            */
+/* ===================== */
 function downloadPDF(id){
 const { jsPDF } = window.jspdf;
 const c = customers.find(x => x.id === id);
 
+if(!c){
+alert("Müşteri bulunamadı");
+return;
+}
+
 const doc = new jsPDF();
+
+doc.setFont("helvetica","bold");
+doc.setFontSize(16);
 doc.text("BORÇ RAPORU", 20, 20);
-doc.text("İsim: " + c.name, 20, 40);
+
+doc.setFont("helvetica","normal");
+doc.setFontSize(12);
+
+doc.text("İsim: " + (c.name || "-"), 20, 40);
 doc.text("Telefon: " + (c.phone || "-"), 20, 50);
-doc.text("Borç: " + c.debt + " TL", 20, 60);
-doc.save(c.name + ".pdf");
+doc.text("Toplam Borç: " + (c.debt || 0) + " TL", 20, 60);
+
+doc.save((c.name || "musteri") + "_borc.pdf");
 }
 
 function render(){
@@ -184,14 +201,14 @@ const div = document.createElement("div");
 div.className = "card";
 
 div.innerHTML = `
-<b>${c.name}</b><br>
+<b>${c.name || "-"}</b><br>
 <span class="small">${c.phone || ""}</span><br>
-<b>Toplam: ${c.debt} ₺</b>
+<b>Toplam Borç: ${c.debt || 0} ₺</b>
 
 <div class="actions">
 <button onclick="addDebt(${c.id})">+ Borç</button>
 <button onclick="payDebt(${c.id})">Ödeme</button>
-<button onclick="downloadPDF(${c.id})">PDF</button>
+<button onclick="downloadPDF(${c.id})">📄 PDF</button>
 <button onclick="deleteCustomer(${c.id})">Sil</button>
 </div>
 `;
