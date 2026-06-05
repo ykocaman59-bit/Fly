@@ -124,7 +124,7 @@ border:2px solid #1DB954;
 
 <input id="name" placeholder="Müşteri adı">
 
-<!-- 🔥 SADE TELEFON INPUT -->
+<!-- 🔧 SADECE BURASI DÜZELTİLDİ -->
 <input id="phone"
 placeholder="Telefon"
 maxlength="10"
@@ -152,6 +152,7 @@ oninput="formatPhone(this)">
 <button onclick="payDebtPopup()">Ödeme</button>
 <button onclick="downloadPDFPopup()">PDF</button>
 <button onclick="openDeleteModal()">Sil</button>
+<button onclick="openEditModal()">Düzenle</button>
 <button onclick="closePopup()">Kapat</button>
 
 <h3>Geçmiş</h3>
@@ -215,12 +216,12 @@ if(value.length > 10) value = value.slice(0,10);
 input.value = value;
 }
 
-/* +90 DISPLAY */
+/* DISPLAY */
 function formatDisplayPhone(p){
 return "+90 " + p.substring(0,3) + " " + p.substring(3,6) + " " + p.substring(6,8) + " " + p.substring(8,10);
 }
 
-/* ADD CUSTOMER */
+/* ADD CUSTOMER (DUPLICATE CONTROL ADDED) */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.replace(/\D/g,"");
@@ -230,8 +231,10 @@ showAlert("Lütfen bilgileri doldurunuz");
 return;
 }
 
-if(phone.length !== 10){
-showAlert("Telefon 10 haneli olmalı");
+/* aynı numara kontrol */
+const exists = customers.some(c => c.phone === phone);
+if(exists){
+showAlert("Bu telefon zaten kayıtlı");
 return;
 }
 
@@ -275,7 +278,7 @@ html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 document.getElementById("history").innerHTML=html || "Yok";
 }
 
-/* INPUT */
+/* INPUT SYSTEM */
 let inputCallback=null;
 
 function openInput(title,cb){
@@ -338,6 +341,21 @@ customers=customers.filter(x=>x.id!==currentId);
 save();
 closeDeleteModal();
 closePopup();
+}
+
+/* EDIT */
+function openEditModal(){
+const c=customers.find(x=>x.id===currentId);
+
+const name=prompt("Yeni isim:",c.name);
+const phone=prompt("Yeni telefon:",c.phone);
+
+if(name && phone){
+c.name=name;
+c.phone=phone;
+save();
+openPopup(currentId);
+}
 }
 
 /* PDF */
