@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Borç Takip</title>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
 body{
 font-family:Arial;
@@ -48,11 +50,6 @@ margin-top:10px;
 border-radius:10px;
 }
 
-.customer{
-border-bottom:1px solid #333;
-padding:10px 0;
-}
-
 .small{
 font-size:12px;
 color:#aaa;
@@ -65,7 +62,6 @@ padding:5px 10px;
 font-size:12px;
 }
 
-/* 🔍 ARAMA */
 .searchBox{
 width:100%;
 padding:10px;
@@ -79,18 +75,18 @@ font-size:14px;
 
 <body>
 
-<header>💰 Borç Takip Uygulaması</header>
+<header>💰 Borç Takip</header>
 
 <div class="container">
 
 <h3>Yeni Müşteri</h3>
 
 <input id="name" placeholder="Müşteri adı">
-<input id="phone" placeholder="Telefon (opsiyonel)">
-<button onclick="addCustomer()">Müşteri Ekle</button>
+<input id="phone" placeholder="Telefon">
+<button onclick="addCustomer()">Ekle</button>
 
-<h3>🔍 Ara</h3>
-<input class="searchBox" id="search" placeholder="Müşteri ara..." oninput="render()">
+<h3>🔍 Arama</h3>
+<input id="search" class="searchBox" placeholder="Müşteri ara..." oninput="render()">
 
 <h3>Müşteriler</h3>
 <div id="list"></div>
@@ -128,36 +124,47 @@ save();
 }
 
 function addDebt(id){
-const amount = prompt("Borç miktarı gir:");
+const amount = prompt("Borç miktarı:");
 if(!amount) return;
 
-const customer = customers.find(c => c.id === id);
-customer.debt += Number(amount);
+const c = customers.find(x => x.id === id);
+c.debt += Number(amount);
 
 save();
 }
 
 function payDebt(id){
-const amount = prompt("Ödeme miktarı gir:");
+const amount = prompt("Ödeme miktarı:");
 if(!amount) return;
 
-const customer = customers.find(c => c.id === id);
-customer.debt -= Number(amount);
+const c = customers.find(x => x.id === id);
+c.debt -= Number(amount);
 
 save();
 }
 
 function deleteCustomer(id){
-customers = customers.filter(c => c.id !== id);
+customers = customers.filter(x => x.id !== id);
 save();
 }
 
-/* 🔍 FİLTRE */
 function getFiltered(){
 const q = document.getElementById("search").value.toLowerCase();
 return customers.filter(c =>
 c.name.toLowerCase().includes(q)
 );
+}
+
+function downloadPDF(id){
+const { jsPDF } = window.jspdf;
+const c = customers.find(x => x.id === id);
+
+const doc = new jsPDF();
+doc.text("BORÇ RAPORU", 20, 20);
+doc.text("İsim: " + c.name, 20, 40);
+doc.text("Telefon: " + (c.phone || "-"), 20, 50);
+doc.text("Borç: " + c.debt + " TL", 20, 60);
+doc.save(c.name + ".pdf");
 }
 
 function render(){
@@ -167,7 +174,7 @@ list.innerHTML = "";
 const filtered = getFiltered();
 
 if(filtered.length === 0){
-list.innerHTML = "<p>Sonuç bulunamadı</p>";
+list.innerHTML = "<p>Sonuç yok</p>";
 return;
 }
 
@@ -177,15 +184,14 @@ const div = document.createElement("div");
 div.className = "card";
 
 div.innerHTML = `
-<div class="customer">
 <b>${c.name}</b><br>
 <span class="small">${c.phone || ""}</span><br>
-<b>Toplam Borç: ${c.debt} ₺</b>
-</div>
+<b>Toplam: ${c.debt} ₺</b>
 
 <div class="actions">
 <button onclick="addDebt(${c.id})">+ Borç</button>
 <button onclick="payDebt(${c.id})">Ödeme</button>
+<button onclick="downloadPDF(${c.id})">PDF</button>
 <button onclick="deleteCustomer(${c.id})">Sil</button>
 </div>
 `;
