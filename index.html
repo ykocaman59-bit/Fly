@@ -46,19 +46,7 @@ background:#1e1e1e;
 padding:10px;
 margin-top:10px;
 border-radius:10px;
-}
-
-.actions{
-display:flex;
-flex-wrap:wrap;
-gap:5px;
-margin-top:10px;
-}
-
-.actions button{
-width:auto;
-padding:6px 10px;
-font-size:12px;
+cursor:pointer;
 }
 
 .small{
@@ -66,10 +54,34 @@ font-size:12px;
 color:#aaa;
 }
 
+/* POPUP */
+.popup{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.7);
+padding:20px;
+}
+
+.popup-content{
+background:#1e1e1e;
+padding:15px;
+border-radius:10px;
+max-height:90vh;
+overflow:auto;
+}
+
+.actions button{
+width:auto;
+margin:5px 5px 0 0;
+padding:6px 10px;
+font-size:12px;
+}
+
 .history{
-margin-top:6px;
-padding:6px;
 background:#111;
+padding:6px;
+margin-top:5px;
 border-radius:6px;
 font-size:12px;
 }
@@ -85,18 +97,40 @@ font-size:12px;
 <h3>Yeni Müşteri</h3>
 <input id="name" placeholder="Müşteri adı">
 <input id="phone" placeholder="Telefon">
-<button onclick="addCustomer()">Müşteri Ekle</button>
+<button onclick="addCustomer()">Ekle</button>
 
-<h3>🔍 Arama</h3>
-<input id="search" oninput="render()" placeholder="Müşteri ara...">
+<h3>🔍 Ara</h3>
+<input id="search" oninput="render()" placeholder="Ara...">
 
 <h3>Müşteriler</h3>
 <div id="list"></div>
 
 </div>
 
+<!-- POPUP -->
+<div class="popup" id="popup">
+<div class="popup-content">
+
+<h2 id="pName"></h2>
+<p id="pPhone"></p>
+<p><b id="pDebt"></b></p>
+
+<div class="actions">
+<button onclick="addDebtPopup()">+ Borç</button>
+<button onclick="payDebtPopup()">Ödeme</button>
+<button onclick="downloadPDFPopup()">📄 PDF</button>
+<button onclick="closePopup()">Kapat</button>
+</div>
+
+<h3>İşlem Geçmişi</h3>
+<div id="history"></div>
+
+</div>
+</div>
+
 <script>
 let customers = JSON.parse(localStorage.getItem("customers")) || [];
+let currentId = null;
 
 function save(){
 localStorage.setItem("customers", JSON.stringify(customers));
@@ -107,120 +141,114 @@ function addCustomer(){
 const name = document.getElementById("name").value.trim();
 const phone = document.getElementById("phone").value.trim();
 
-if(!name){
-alert("İsim gir");
-return;
-}
+if(!name) return;
 
 customers.push({
-id: Date.now(),
+id:Date.now(),
 name,
 phone,
-debt: 0,
+debt:0,
 history:[]
 });
-
-document.getElementById("name").value = "";
-document.getElementById("phone").value = "";
 
 save();
 }
 
 function addHistory(c,text){
-if(!c.history) c.history = [];
 c.history.push({
 text,
-date: new Date().toLocaleString()
+date:new Date().toLocaleString()
 });
-}
-
-function addDebt(id){
-const amount = prompt("Borç miktarı:");
-if(!amount) return;
-
-const c = customers.find(x => x.id === id);
-c.debt = (c.debt || 0) + Number(amount);
-
-addHistory(c,"+ " + amount + "₺ borç eklendi");
-
-save();
-}
-
-function payDebt(id){
-const amount = prompt("Ödeme miktarı:");
-if(!amount) return;
-
-const c = customers.find(x => x.id === id);
-c.debt = (c.debt || 0) - Number(amount);
-
-addHistory(c,"- " + amount + "₺ ödeme alındı");
-
-save();
-}
-
-function deleteCustomer(id){
-customers = customers.filter(x => x.id !== id);
-save();
 }
 
 function getFiltered(){
 const q = document.getElementById("search").value.toLowerCase();
 return customers.filter(c =>
-(c.name || "").toLowerCase().includes(q)
+c.name.toLowerCase().includes(q)
 );
 }
 
-/* ================= PDF ================= */
-function downloadPDF(id){
-const { jsPDF } = window.jspdf;
-const c = customers.find(x => x.id === id);
+/* ========== POPUP AÇ ========== */
+function openPopup(id){
+currentId = id;
+const c = customers.find(x=>x.id===id);
 
-if(!c) return;
+document.getElementById("popup").style.display="block";
+document.getElementById("pName").innerText=c.name;
+document.getElementById("pPhone").innerText=c.phone || "";
+document.getElementById("pDebt").innerText="Toplam Borç: "+c.debt+" ₺";
 
-const doc = new jsPDF();
-
-doc.text("BORÇ RAPORU",20,20);
-doc.text("İsim: " + (c.name || "-"),20,40);
-doc.text("Telefon: " + (c.phone || "-"),20,50);
-doc.text("Toplam Borç: " + (c.debt || 0) + " TL",20,60);
-
-doc.save((c.name || "musteri") + "_borc.pdf");
+renderHistory(c);
 }
 
-function render(){
-const list = document.getElementById("list");
-list.innerHTML = "";
-
-const filtered = getFiltered();
-
-if(filtered.length === 0){
-list.innerHTML = "<p>Sonuç yok</p>";
-return;
+function closePopup(){
+document.getElementById("popup").style.display="none";
 }
 
-filtered.forEach(c => {
-
-let historyHTML = "";
-(c.history || []).slice().reverse().forEach(h=>{
-historyHTML += `<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
+/* ========== HISTORY ========== */
+function renderHistory(c){
+let html="";
+(c.history||[]).slice().reverse().forEach(h=>{
+html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 });
+document.getElementById("history").innerHTML=html || "Kayıt yok";
+}
 
-const div = document.createElement("div");
-div.className = "card";
+/* ========== ACTIONS ========== */
+function addDebtPopup(){
+const amount=prompt("Borç:");
+if(!amount) return;
 
-div.innerHTML = `
-<b>${c.name || "-"}</b><br>
-<span class="small">${c.phone || ""}</span><br>
-<b>Toplam: ${c.debt || 0} ₺</b>
+const c=customers.find(x=>x.id===currentId);
+c.debt+=Number(amount);
 
-<div class="actions">
-<button onclick="addDebt(${c.id})">+ Borç</button>
-<button onclick="payDebt(${c.id})">Ödeme</button>
-<button onclick="downloadPDF(${c.id})">📄 PDF</button>
-<button onclick="deleteCustomer(${c.id})">Sil</button>
-</div>
+addHistory(c,"+ "+amount+"₺ borç eklendi");
 
-${historyHTML}
+save();
+openPopup(currentId);
+}
+
+function payDebtPopup(){
+const amount=prompt("Ödeme:");
+if(!amount) return;
+
+const c=customers.find(x=>x.id===currentId);
+c.debt-=Number(amount);
+
+addHistory(c,"- "+amount+"₺ ödeme alındı");
+
+save();
+openPopup(currentId);
+}
+
+/* ========== PDF ========== */
+function downloadPDFPopup(){
+const { jsPDF } = window.jspdf;
+const c=customers.find(x=>x.id===currentId);
+
+const doc=new jsPDF();
+doc.text("BORÇ RAPORU",20,20);
+doc.text("İsim: "+c.name,20,40);
+doc.text("Borç: "+c.debt+" TL",20,50);
+doc.save(c.name+".pdf");
+}
+
+/* ========== RENDER ========== */
+function render(){
+const list=document.getElementById("list");
+list.innerHTML="";
+
+const filtered=getFiltered();
+
+filtered.forEach(c=>{
+const div=document.createElement("div");
+div.className="card";
+div.onclick=()=>openPopup(c.id);
+
+div.innerHTML=`
+<b>${c.name}</b><br>
+<span class="small">${c.phone||""}</span><br>
+<b>${c.debt} ₺</b>
 `;
 
 list.appendChild(div);
