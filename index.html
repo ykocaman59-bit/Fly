@@ -51,7 +51,6 @@ cursor:pointer;
 
 .small{ font-size:12px; color:#aaa; }
 
-/* POPUP */
 .popup{
 display:none;
 position:fixed;
@@ -68,7 +67,6 @@ max-height:90vh;
 overflow:auto;
 }
 
-/* DELETE */
 .deleteModal{
 display:none;
 position:fixed;
@@ -92,6 +90,24 @@ padding:6px;
 margin-top:5px;
 border-radius:6px;
 font-size:12px;
+}
+
+/* CUSTOM INPUT */
+#inputModal{
+display:none;
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.7);
+justify-content:center;
+align-items:center;
+}
+
+#inputModal div{
+background:#1e1e1e;
+padding:20px;
+border-radius:12px;
+width:80%;
+max-width:300px;
 }
 </style>
 </head>
@@ -144,6 +160,16 @@ font-size:12px;
 </div>
 </div>
 
+<!-- CUSTOM INPUT -->
+<div id="inputModal">
+<div>
+<h3 id="inputTitle">İşlem</h3>
+<input id="numberInput" type="number" placeholder="Sadece sayı">
+<button onclick="confirmInput()">Tamam</button>
+<button onclick="closeInput()" style="background:#555;">İptal</button>
+</div>
+</div>
+
 <script>
 
 let customers = JSON.parse(localStorage.getItem("customers")) || [];
@@ -155,7 +181,7 @@ localStorage.setItem("customers", JSON.stringify(customers));
 render();
 }
 
-/* ADD */
+/* ADD CUSTOMER */
 function addCustomer(){
 const name=document.getElementById("name").value.trim();
 const phone=document.getElementById("phone").value.trim();
@@ -171,6 +197,10 @@ history:[]
 });
 
 save();
+
+/* INPUT TEMİZLE */
+document.getElementById("name").value="";
+document.getElementById("phone").value="";
 }
 
 /* HISTORY */
@@ -215,42 +245,58 @@ html+=`<div class="history">🕒 ${h.date}<br>${h.text}</div>`;
 document.getElementById("history").innerHTML=html || "Yok";
 }
 
-/* ================== SADECE BURASI DÜZELTİLDİ ================== */
+/* CUSTOM INPUT SYSTEM */
+let inputCallback=null;
 
-/* BORÇ EKLE */
-function addDebtPopup(){
-const a = prompt("Borç miktarı (sadece sayı):");
+function openInput(title,callback){
+document.getElementById("inputModal").style.display="flex";
+document.getElementById("inputTitle").innerText=title;
+document.getElementById("numberInput").value="";
+inputCallback=callback;
+}
 
-if(a === null) return;
-if(isNaN(a) || a.trim() === ""){
+function closeInput(){
+document.getElementById("inputModal").style.display="none";
+inputCallback=null;
+}
+
+function confirmInput(){
+const val=document.getElementById("numberInput").value;
+
+if(val==="" || isNaN(val)){
 alert("Sadece sayı gir!");
 return;
 }
 
-const c=customers.find(x=>x.id===currentId);
-c.debt += Number(a);
+if(inputCallback){
+inputCallback(Number(val));
+}
 
-addHistory(c,"+ "+a+"₺ borç eklendi");
+closeInput();
+}
+
+/* BORÇ */
+function addDebtPopup(){
+openInput("Borç Ekle",function(val){
+const c=customers.find(x=>x.id===currentId);
+c.debt+=val;
+
+addHistory(c,"+ "+val+"₺ borç eklendi");
 save();
 openPopup(currentId);
+});
 }
 
 /* ÖDEME */
 function payDebtPopup(){
-const a = prompt("Ödeme miktarı (sadece sayı):");
-
-if(a === null) return;
-if(isNaN(a) || a.trim() === ""){
-alert("Sadece sayı gir!");
-return;
-}
-
+openInput("Ödeme Yap",function(val){
 const c=customers.find(x=>x.id===currentId);
-c.debt -= Number(a);
+c.debt-=val;
 
-addHistory(c,"- "+a+"₺ ödeme alındı");
+addHistory(c,"- "+val+"₺ ödeme alındı");
 save();
 openPopup(currentId);
+});
 }
 
 /* DELETE */
@@ -263,7 +309,7 @@ document.getElementById("deleteModal").style.display="none";
 }
 
 function confirmDelete(){
-customers = customers.filter(x=>x.id!==currentId);
+customers=customers.filter(x=>x.id!==currentId);
 save();
 closeDeleteModal();
 closePopup();
